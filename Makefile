@@ -205,7 +205,7 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
 OBJECTS += $(OBJS)
 
 all: $(TARGET)
-	@echo "** BUILDING $(TARGET) FOR PLATFORM $(platform) **"
+
 ifeq ($(platform), wii)
 $(TARGET): $(OBJECTS) 
 	$(AR) rcs $@ $(OBJECTS) 
@@ -218,13 +218,14 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(fpic) $(SHARED) $(INCDIRS) -o $@ $(OBJECTS) $(LDFLAGS)
 else
 $(TARGET): $(OBJECTS)
+	@echo "** BUILDING $(TARGET) FOR PLATFORM $(platform) **"
 	$(CXX) $(fpic) $(SHARED) $(INCDIRS) -o $@ $(OBJECTS) $(LDFLAGS)
+	@echo "** BUILD SUCCESSFUL! GG NO RE **"
 endif
 
 $(EMU)/od-retro/neon_helper.o: $(EMU)/od-retro/neon_helper.s
 	$(CXX) $(CPU_FLAGS) $(PLATFORM_DEFINES) -Wall -o $(EMU)/od-retro/neon_helper.o -c $(EMU)/od-retro/neon_helper.s
 	echo $(OBJS)
-	@echo "** BUILD SUCCESSFUL! GG NO RE **"
 
 %.o: %.cpp
 	$(CXX) $(fpic) $(CFLAGS) $(PLATFLAGS) $(INCDIRS) -c -o $@ $<
