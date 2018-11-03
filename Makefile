@@ -62,6 +62,42 @@ else ifeq ($(platform), crossand)
    AR = @arm-linux-androideabi-ar
    LD = @arm-linux-androideabi-g++ 
 LDFLAGS += -lz -llog
+
+# Classic Platforms ####################
+# Platform affix = classic_<ISA>_<µARCH>
+# Help at https://modmyclassic.com/comp
+
+# (armv7 a7, hard point, neon based) ### 
+# NESC, SNESC, C64 mini 
+else ifeq ($(platform), classic_armv7_a7)
+	TARGET := $(TARGET_NAME)_libretro.so
+	fpic := -fPIC
+    SHARED :=-shared -Wl,--version-script=$(CORE_DIR)/libretro/link.T -Wl,--no-undefined
+	PLATFORM_DEFINES +=   -DLSB_FIRST -DALIGN_DWORD -DWITH_LOGGING
+	HAVE_NEON = 1
+	USE_PICASSO96 = 1
+	CPU_FLAGS += -DARM -Ofast \
+	-flto=4 -fwhole-program -fuse-linker-plugin \
+	-fdata-sections -ffunction-sections -Wl,--gc-sections \
+	-fno-stack-protector -fno-ident -fomit-frame-pointer \
+	-falign-functions=1 -falign-jumps=1 -falign-loops=1 \
+	-fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops \
+	-fmerge-all-constants -fno-math-errno \
+	-marm -mtune=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard
+	CXXFLAGS += $(CPU_FLAGS)
+	CPPFLAGS += $(CPU_FLAGS)
+	ASFLAGS += $(CPU_FLAGS)
+	ifeq ($(shell echo `$(CC) -dumpversion` "< 4.9" | bc -l), 1)
+	  CFLAGS += -march=armv7-a
+	else
+	  CFLAGS += -march=armv7ve
+	  # If gcc is 5.0 or later
+	  ifeq ($(shell echo `$(CC) -dumpversion` ">= 5" | bc -l), 1)
+	    LDFLAGS += -static-libgcc -static-libstdc++
+	  endif
+	endif
+#######################################
+
 else ifeq ($(platform), rpi2)
     	TARGET := $(TARGET_NAME)_libretro.so
    	fpic = -fPIC
@@ -169,7 +205,7 @@ INCDIRS := $(EXTRA_INCLUDES) $(INCFLAGS)
 OBJECTS += $(OBJS)
 
 all: $(TARGET)
-
+	@echo "** BUILDING $(TARGET) FOR PLATFORM $(platform) **"
 ifeq ($(platform), wii)
 $(TARGET): $(OBJECTS) 
 	$(AR) rcs $@ $(OBJECTS) 
@@ -183,12 +219,12 @@ $(TARGET): $(OBJECTS)
 else
 $(TARGET): $(OBJECTS)
 	$(CXX) $(fpic) $(SHARED) $(INCDIRS) -o $@ $(OBJECTS) $(LDFLAGS)
-
 endif
 
 $(EMU)/od-retro/neon_helper.o: $(EMU)/od-retro/neon_helper.s
 	$(CXX) $(CPU_FLAGS) $(PLATFORM_DEFINES) -Wall -o $(EMU)/od-retro/neon_helper.o -c $(EMU)/od-retro/neon_helper.s
 	echo $(OBJS)
+	@echo "** BUILD SUCCESSFUL! GG NO RE **"
 
 %.o: %.cpp
 	$(CXX) $(fpic) $(CFLAGS) $(PLATFLAGS) $(INCDIRS) -c -o $@ $<
